@@ -460,7 +460,7 @@ IPVS_MODULES:= \
 define KernelPackage/nf-ipvs
   SUBMENU:=Netfilter Extensions
   TITLE:=IP Virtual Server modules
-  DEPENDS:=@IPV6 +LINUX_6_12:kmod-lib-crc32c +kmod-ipt-conntrack +kmod-nf-conntrack
+  DEPENDS:=@IPV6 +LINUX_6_12:kmod-lib-crc32c +kmod-nf-conntrack +kmod-nf-xtables
   KCONFIG:= \
 	CONFIG_IP_VS \
 	CONFIG_IP_VS_IPV6=y \
@@ -488,7 +488,6 @@ define KernelPackage/nf-ipvs
 	CONFIG_IP_VS_NFCT=y \
 	CONFIG_NETFILTER_XT_MATCH_IPVS
   FILES:=$(foreach mod,$(IPVS_MODULES),$(LINUX_DIR)/net/netfilter/$(mod).ko)
-  $(call AddDepends/ipt,+kmod-ipt-conntrack,+kmod-nf-conntrack)
 endef
 
 define KernelPackage/nf-ipvs/description
