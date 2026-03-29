@@ -1,0 +1,44 @@
+--- a/drivers/irqchip/irq-renesas-rzv2h.c
++++ b/drivers/irqchip/irq-renesas-rzv2h.c
+@@ -89,7 +89,7 @@
+ #define ICU_RZG3E_TSSEL_MAX_VAL			0x8c
+ #define ICU_RZV2H_TSSEL_MAX_VAL			0x55
+ 
+-#define field_get(_mask, _reg) (((_reg) & (_mask)) >> (ffs(_mask) - 1))
++#define rzv2h_field_get(_mask, _reg) (((_reg) & (_mask)) >> (ffs(_mask) - 1))
+ 
+ /**
+  * struct rzv2h_hw_info - Interrupt Control Unit controller hardware info structure.
+@@ -381,8 +381,8 @@ static int rzv2h_tint_set_type(struct ir
+ 	tssr = readl_relaxed(priv->base + priv->info->t_offs + ICU_TSSR(tssr_k));
+ 	titsr = readl_relaxed(priv->base + priv->info->t_offs + ICU_TITSR(titsr_k));
+ 
+-	tssr_cur = field_get(ICU_TSSR_TSSEL_MASK(tssel_n, priv->info->field_width), tssr);
+-	titsr_cur = field_get(ICU_TITSR_TITSEL_MASK(titsel_n), titsr);
++	tssr_cur = rzv2h_field_get(ICU_TSSR_TSSEL_MASK(tssel_n, priv->info->field_width), tssr);
++	titsr_cur = rzv2h_field_get(ICU_TITSR_TITSEL_MASK(titsel_n), titsr);
+ 	if (tssr_cur == tint && titsr_cur == sense)
+ 		return 0;
+ 
+--- a/drivers/soc/renesas/rz-sysc.c
++++ b/drivers/soc/renesas/rz-sysc.c
+@@ -16,7 +16,7 @@
+ 
+ #include "rz-sysc.h"
+ 
+-#define field_get(_mask, _reg) (((_reg) & (_mask)) >> (ffs(_mask) - 1))
++#define rz_field_get(_mask, _reg) (((_reg) & (_mask)) >> (ffs(_mask) - 1))
+ 
+ /**
+  * struct rz_sysc - RZ SYSC private data structure
+@@ -59,8 +59,8 @@ static int rz_sysc_soc_init(struct rz_sy
+ 		return -ENOMEM;
+ 
+ 	val = readl(sysc->base + soc_data->devid_offset);
+-	revision = field_get(soc_data->revision_mask, val);
+-	specific_id = field_get(soc_data->specific_id_mask, val);
++	revision = rz_field_get(soc_data->revision_mask, val);
++	specific_id = rz_field_get(soc_data->specific_id_mask, val);
+ 	soc_dev_attr->revision = devm_kasprintf(sysc->dev, GFP_KERNEL, "%u", revision);
+ 	if (!soc_dev_attr->revision)
+ 		return -ENOMEM;
