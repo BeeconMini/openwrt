@@ -185,7 +185,8 @@ define U-Boot/radxa-e20c-rk3528
   $(U-Boot/rk3528/Default)
   NAME:=E20C
   BUILD_DEVICES:= \
-    radxa_e20c
+    radxa_e20c \
+    friendlyarm_nanopi-zero2
 endef
 
 define U-Boot/rock-2-rk3528
