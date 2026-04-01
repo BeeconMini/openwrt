@@ -2457,7 +2457,7 @@ endef
 TARGET_DEVICES += netgear_wax220
 
 define Device/netis_nx30v2
-  DEVICE_VENDOR := Netis
+  DEVICE_VENDOR := netis
   DEVICE_MODEL := NX30V2
   DEVICE_ALT0_VENDOR := Netcore
   DEVICE_ALT0_MODEL := POWER30AX
@@ -2467,6 +2467,8 @@ define Device/netis_nx30v2
   DEVICE_ALT2_MODEL := GW3001
   DEVICE_ALT3_VENDOR := GLC
   DEVICE_ALT3_MODEL := W7
+  DEVICE_ALT4_VENDOR := netis
+  DEVICE_ALT4_MODEL := MEX605
   DEVICE_DTS := mt7981b-netis-nx30v2
   DEVICE_DTS_DIR := ../dts
   DEVICE_DTC_FLAGS := --pad 4096
