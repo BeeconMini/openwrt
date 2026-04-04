@@ -132,6 +132,18 @@ platform_do_upgrade() {
 	wallys,dr40x9)
 		nand_do_upgrade "$1"
 		;;
+	cradlepoint,ibr600c|\
+	cradlepoint,ibr900)
+		CI_KERNPART="kernel"
+		CI_ROOTPART="ubi_rootfs"
+		nand_do_upgrade "$1"
+		;;
+	cradlepoint,ibr1700)
+		CI_KERNPART="0:HLOS"
+		CI_ROOTPART="rootfs"
+		CI_DATAPART="rootfs_data"
+		emmc_do_upgrade "$1"
+		;;
 	alfa-network,ap120c-ac)
 		part="$(awk -F 'ubi.mtd=' '{printf $2}' /proc/cmdline | sed -e 's/ .*$//')"
 		if [ "$part" = "rootfs1" ]; then
@@ -167,7 +179,7 @@ platform_do_upgrade() {
 		CI_ROOTPART="rootfs"
 		emmc_do_upgrade "$1"
 		;;
-	huawei,ap4050dn)
+		huawei,ap4050dn)
 		# Store beginning address of the "uboot" partition
 		# as KernelA address and KernelB address, each to ResultA & ResultB
 		# This is the address from which the bootloader will try to load the u-boot that we use as loader.
