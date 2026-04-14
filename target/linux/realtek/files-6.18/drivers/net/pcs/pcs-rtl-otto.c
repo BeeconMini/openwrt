@@ -244,6 +244,7 @@ struct rtpcs_config {
 	const struct rtpcs_sds_ops *sds_ops;
 	const struct rtpcs_sds_regs *sds_regs;
 	int (*init)(struct rtpcs_ctrl *ctrl);
+	int (*sds_probe)(struct rtpcs_serdes *sds);
 	int (*setup_serdes)(struct rtpcs_serdes *sds, enum rtpcs_sds_mode hw_mode);
 };
 
@@ -4169,6 +4170,12 @@ static int rtpcs_probe(struct platform_device *pdev)
 		sds->id = i;
 		sds->ops = ctrl->cfg->sds_ops;
 		sds->regs = ctrl->cfg->sds_regs;
+
+		if (ctrl->cfg->sds_probe) {
+			ret = ctrl->cfg->sds_probe(sds);
+			if (ret)
+				return ret;
+		}
 	}
 
 	for_each_child_of_node(dev->of_node, child) {
