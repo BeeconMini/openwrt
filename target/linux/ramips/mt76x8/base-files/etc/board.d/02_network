@@ -221,7 +221,8 @@ ramips_setup_interfaces()
 			"1:lan" "2:lan" "3:lan" "4:wan" "6@eth0"
 		;;
 	tplink,tl-mr6400-v5|\
-	tplink,tl-mr6400-v7)
+	tplink,tl-mr6400-v7|\
+	tplink,archer-mr402-v1)
 		ucidef_add_switch "switch0" \
 			"0:lan" "1:lan" "2:lan" "3:wan" "6@eth0"
 		;;
