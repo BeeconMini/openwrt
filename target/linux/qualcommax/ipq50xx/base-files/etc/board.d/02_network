@@ -18,6 +18,7 @@ ipq50xx_setup_interfaces()
 		;;
 	cmcc,mr3000d-ci|\
 	cmcc,pz-l8|\
+	cmcc,rax3000q|\
 	linksys,mx2000|\
 	linksys,mx5500|\
 	linksys,spnmx56|\
