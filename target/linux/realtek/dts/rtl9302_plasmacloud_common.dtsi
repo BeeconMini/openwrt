@@ -134,46 +134,14 @@
 };
 
 &mdio_bus0 {
-	/* External RTL8224 PHY */
-	phy0: ethernet-phy@0 {
-		reg = <0>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
-
-	phy1: ethernet-phy@1 {
-		reg = <1>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
-
-	phy2: ethernet-phy@2 {
-		reg = <2>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
-
-	phy3: ethernet-phy@3 {
-		reg = <3>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
-
-	phy8: ethernet-phy@4 {
-		reg = <4>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
-
-	phy9: ethernet-phy@5 {
-		reg = <5>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
-
-	phy10: ethernet-phy@6 {
-		reg = <6>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
-
-	phy11: ethernet-phy@7 {
-		reg = <7>;
-		compatible = "ethernet-phy-ieee802.3-c45";
-	};
+	PHY_C45_PAIR_ORDER(0, 0, 0)
+	PHY_C45_PAIR_ORDER(1, 1, 0)
+	PHY_C45_PAIR_ORDER(2, 2, 1)
+	PHY_C45_PAIR_ORDER(3, 3, 1)
+	PHY_C45_PAIR_ORDER(8, 4, 0)
+	PHY_C45_PAIR_ORDER(9, 5, 0)
+	PHY_C45_PAIR_ORDER(10, 6, 1)
+	PHY_C45_PAIR_ORDER(11, 7, 1)
 };
 
 &switch0 {
