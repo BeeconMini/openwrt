@@ -26,6 +26,10 @@ Once this is done. Retry.
 EOF
 		return 1
 		;;
+	ubnt,utr)
+		nand_do_platform_check "$(board_name)" "$1"
+		return $?
+		;;
 	zte,mf18a|\
 	zte,mf282plus|\
 	zte,mf286d|\
@@ -235,6 +239,11 @@ platform_do_upgrade() {
 		;;
 	sony,ncp-hg100-cellular)
 		sony_emmc_do_upgrade "$1"
+		;;
+	ubnt,utr)
+		CI_UBIPART="kernel1"
+		CI_KERNPART="vol"
+		nand_do_upgrade "$1"
 		;;
 	teltonika,rutx10|\
 	teltonika,rutx50|\
