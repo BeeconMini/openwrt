@@ -109,6 +109,12 @@
 #define RTPCS_931X_SDS_MAIN_AMP_MASK		GENMASK(9, 5)
 #define RTPCS_931X_SDS_POST_AMP_MASK		GENMASK(14, 10)
 
+enum rtpcs_sds_type {
+	RTPCS_SDS_TYPE_UNKNOWN,
+	RTPCS_SDS_TYPE_5G,
+	RTPCS_SDS_TYPE_10G,
+};
+
 enum rtpcs_sds_mode {
 	RTPCS_SDS_MODE_OFF = 0,
 
@@ -201,6 +207,7 @@ struct rtpcs_serdes {
 	struct rtpcs_ctrl *ctrl;
 	const struct rtpcs_sds_ops *ops;
 	const struct rtpcs_sds_regs *regs;
+	enum rtpcs_sds_type type;
 	enum rtpcs_sds_mode hw_mode;
 	u8 id;
 	u8 num_of_links;
@@ -890,6 +897,12 @@ static int rtpcs_838x_setup_serdes(struct rtpcs_serdes *sds,
 	return 0;
 }
 
+static int rtpcs_838x_sds_probe(struct rtpcs_serdes *sds)
+{
+	sds->type = RTPCS_SDS_TYPE_5G;
+	return 0;
+}
+
 /* RTL839X */
 
 static void rtpcs_839x_sds_reset(struct rtpcs_serdes *sds)
@@ -897,17 +910,14 @@ static void rtpcs_839x_sds_reset(struct rtpcs_serdes *sds)
 	struct rtpcs_serdes *even_sds = rtpcs_sds_get_even(sds);
 	struct rtpcs_serdes *odd_sds = rtpcs_sds_get_odd(sds);
 
-	bool is_10g_sds = (sds->id == 8 || sds->id == 9 || sds->id == 12 ||
-			   sds->id == 13);
-
 	/* FIXME: The reset sequence seems to break some of the 5G SerDes
 	 * though the SDK is calling it for all SerDes during init. Until
 	 * this is solved, skip reset.
 	 */
-	if (!is_10g_sds)
+	if (sds->type == RTPCS_SDS_TYPE_5G)
 		return;
 
-	if (is_10g_sds) {
+	if (sds->type == RTPCS_SDS_TYPE_10G) {
 		rtpcs_sds_write_bits(odd_sds, 0x2f, 0x1d, 3, 0, 0x5);
 		msleep(500);
 		rtpcs_sds_write_bits(odd_sds, 0x2f, 0x1d, 3, 0, 0xf);
@@ -968,9 +978,14 @@ static int rtpcs_839x_sds_set_mode(struct rtpcs_serdes *sds,
 				 mode_val << shift);
 }
 
-static void rtpcs_839x_sds_init(struct rtpcs_serdes *sds)
+static int rtpcs_839x_sds_probe(struct rtpcs_serdes *sds)
 {
 	bool is_even = sds->id % 2 == 0;
+
+	if (sds->id == 8 || sds->id == 9 || sds->id == 12 || sds->id == 13)
+		sds->type = RTPCS_SDS_TYPE_10G;
+	else
+		sds->type = RTPCS_SDS_TYPE_5G;
 
 	/*
 	 * This function is quite "mystic". It has been taken over from the vendor SDK function
@@ -978,8 +993,8 @@ static void rtpcs_839x_sds_init(struct rtpcs_serdes *sds)
 	 * lookup the fields from the field headers. The 5G SerDes seem to work out of the box
 	 * so only setup the 10G SerDes for now.
 	 */
-	if (sds->id != 8 && sds->id != 9 && sds->id != 12 && sds->id != 13)
-		return;
+	if (sds->type == RTPCS_SDS_TYPE_5G)
+		return 0;
 
 	/* Part 1: register setup */
 	rtpcs_sds_write(sds, 0x2e, 0x0, 0x5800);
@@ -1081,13 +1096,13 @@ static void rtpcs_839x_sds_init(struct rtpcs_serdes *sds)
 	rtpcs_sds_write_bits(sds, 0x2e, 0x13, 9, 9, 0x0000);
 	rtpcs_sds_write_bits(sds, 0x2e, 0x13, 3, 0, 0x0008);
 	rtpcs_sds_write_bits(sds, 0x2e, 0x13, 8, 5, 0x0008);
+
+	return 0;
 }
 
 static int rtpcs_839x_init(struct rtpcs_ctrl *ctrl)
 {
-	for (int sds_id = 0; sds_id < ctrl->cfg->serdes_count; sds_id++)
-		rtpcs_839x_sds_init(&ctrl->serdes[sds_id]);
-
+	/* reset all SerDes once after patching has been applied before */
 	for (int sds_id = 0; sds_id < ctrl->cfg->serdes_count; sds_id++)
 		rtpcs_839x_sds_reset(&ctrl->serdes[sds_id]);
 
@@ -1103,7 +1118,7 @@ static int rtpcs_839x_setup_serdes(struct rtpcs_serdes *sds,
 	 * at startup for QSGMII. Thus, connected PHYs should work out
 	 * of the box.
 	 */
-	if (sds->id != 8 && sds->id != 9 && sds->id != 12 && sds->id != 13)
+	if (sds->type == RTPCS_SDS_TYPE_5G)
 		return 0;
 
 	ret = rtpcs_839x_sds_set_mode(sds, hw_mode);
@@ -1407,7 +1422,7 @@ static int __rtpcs_930x_sds_get_usxgmii_submode(struct rtpcs_serdes *sds)
 	u8 sds_id = sds->id;
 	int submode, ret;
 
-	if (sds_id < 2 || sds_id > 9) {
+	if (sds->type != RTPCS_SDS_TYPE_10G) {
 		pr_err("%s: SerDes %u doesn't support USXGMII submode\n", __func__, sds_id);
 		return -ENOTSUPP;
 	}
@@ -1424,7 +1439,7 @@ static int __rtpcs_930x_sds_set_usxgmii_submode(struct rtpcs_serdes *sds, u32 su
 {
 	u8 sds_id = sds->id;
 
-	if (sds_id < 2 || sds_id > 9) {
+	if (sds->type != RTPCS_SDS_TYPE_10G) {
 		pr_err("%s: SerDes %u doesn't support USXGMII submode\n", __func__, sds_id);
 		return -ENOTSUPP;
 	}
@@ -2832,7 +2847,7 @@ static int rtpcs_930x_sds_config_hw_mode(struct rtpcs_serdes *sds, enum rtpcs_sd
 	apply_fn = is_xsgmii ? rtpcs_sds_apply_config_xsg : rtpcs_sds_apply_config;
 
 	if (hw_mode == RTPCS_SDS_MODE_QSGMII) {
-		if (sds->id >= 2)
+		if (sds->type != RTPCS_SDS_TYPE_5G)
 			return -ENOTSUPP;
 
 		return rtpcs_sds_apply_config(sds, rtpcs_930x_sds_cfg_5g_qsgmii,
@@ -3018,6 +3033,18 @@ static int rtpcs_930x_setup_serdes(struct rtpcs_serdes *sds,
 skip_cali:
 	/* Leave loopback mode */
 	rtpcs_930x_sds_tx_config(sds, hw_mode);
+
+	return 0;
+}
+
+static int rtpcs_930x_sds_probe(struct rtpcs_serdes *sds)
+{
+	if (sds->id < 2)
+		sds->type = RTPCS_SDS_TYPE_5G;
+	else if (sds->id <= 9)
+		sds->type = RTPCS_SDS_TYPE_10G;
+	else
+		sds->type = RTPCS_SDS_TYPE_UNKNOWN;
 
 	return 0;
 }
@@ -3287,7 +3314,7 @@ static void rtpcs_931x_sds_reset(struct rtpcs_serdes *sds)
 
 static void rtpcs_931x_sds_rx_reset(struct rtpcs_serdes *sds)
 {
-	if (sds->id < 2)
+	if (sds->type != RTPCS_SDS_TYPE_10G)
 		return;
 
 	rtpcs_sds_write(sds, 0x2e, 0x12, 0x2740);
@@ -3585,7 +3612,7 @@ static int rtpcs_931x_sds_config_tx(struct rtpcs_serdes *sds,
 {
 	const struct rtpcs_sds_tx_config *tx_cfg;
 
-	if (sds->id < 2)
+	if (sds->type != RTPCS_SDS_TYPE_10G)
 		return 0;
 
 	switch (sds_media) {
@@ -3915,6 +3942,16 @@ static int rtpcs_931x_init_mac_groups(struct rtpcs_ctrl *ctrl)
 	return 0;
 }
 
+static int rtpcs_931x_sds_probe(struct rtpcs_serdes *sds)
+{
+	if (sds->id >= 2)
+		sds->type = RTPCS_SDS_TYPE_10G;
+	else
+		sds->type = RTPCS_SDS_TYPE_UNKNOWN;
+
+	return 0;
+}
+
 static int rtpcs_931x_init(struct rtpcs_ctrl *ctrl)
 {
 	int ret;
@@ -4239,6 +4276,7 @@ static const struct rtpcs_config rtpcs_838x_cfg = {
 	.sds_ops		= &rtpcs_838x_sds_ops,
 	.sds_regs		= &rtpcs_838x_sds_regs,
 	.init			= rtpcs_838x_init,
+	.sds_probe		= rtpcs_838x_sds_probe,
 	.setup_serdes		= rtpcs_838x_setup_serdes,
 };
 
@@ -4274,6 +4312,7 @@ static const struct rtpcs_config rtpcs_839x_cfg = {
 	.sds_ops		= &rtpcs_839x_sds_ops,
 	.sds_regs		= &rtpcs_839x_sds_regs,
 	.init			= rtpcs_839x_init,
+	.sds_probe		= rtpcs_839x_sds_probe,
 	.setup_serdes		= rtpcs_839x_setup_serdes,
 };
 
@@ -4314,6 +4353,7 @@ static const struct rtpcs_config rtpcs_930x_cfg = {
 	.sds_ops		= &rtpcs_930x_sds_ops,
 	.sds_regs		= &rtpcs_930x_sds_regs,
 	.init			= rtpcs_93xx_init,
+	.sds_probe		= rtpcs_930x_sds_probe,
 	.setup_serdes		= rtpcs_930x_setup_serdes,
 };
 
@@ -4353,6 +4393,7 @@ static const struct rtpcs_config rtpcs_931x_cfg = {
 	.sds_ops		= &rtpcs_931x_sds_ops,
 	.sds_regs		= &rtpcs_931x_sds_regs,
 	.init			= rtpcs_931x_init,
+	.sds_probe		= rtpcs_931x_sds_probe,
 	.setup_serdes		= rtpcs_931x_setup_serdes,
 };
 
