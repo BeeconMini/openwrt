@@ -725,31 +725,28 @@ rtldsa_839x_vlan_profile_dump(struct rtl838x_switch_priv *priv, int idx)
 		sw_r32(RTL839X_VLAN_PROFILE(idx) + 4));
 }
 
-static int rtldsa_839x_stp_get(struct rtl838x_switch_priv *priv, u16 msti, int port, u32 port_state[])
+static int rtldsa_839x_stp_access(struct rtl838x_switch_priv *priv,
+				  u16 msti, int port, u32 *new_state)
 {
+	u32 cmd = BIT(16) | (5 << 12) | (msti & 0xfff); /* read table 5 */
 	int idx = 3 - ((port + 12) / 16);
 	int bit = 2 * ((port + 12) % 16);
-	u32 cmd = 1 << 16 | /* Execute cmd */
-		  0 << 15 | /* Read */
-		  5 << 12 | /* Table type 0b101 */
-		  (msti & 0xfff);
+	u32 old_state, state;
 
 	priv->r->exec_tbl0_cmd(cmd);
-	for (int i = 0; i < 4; i++)
-		port_state[i] = sw_r32(priv->r->tbl_access_data_0(i));
+	state = sw_r32(priv->r->tbl_access_data_0(idx));
 
-	return (port_state[idx] >> bit) & 3;
-}
+	old_state = (state >> bit) & 3;
 
-static void rtl839x_stp_set(struct rtl838x_switch_priv *priv, u16 msti, u32 port_state[])
-{
-	u32 cmd = 1 << 16 | /* Execute cmd */
-		  1 << 15 | /* Write */
-		  5 << 12 | /* Table type 0b101 */
-		  (msti & 0xfff);
-	for (int i = 0; i < 4; i++)
-		sw_w32(port_state[i], priv->r->tbl_access_data_0(i));
-	priv->r->exec_tbl0_cmd(cmd);
+	if (new_state) {
+		state = (state & ~(3 << bit)) | ((*new_state & 3) << bit);
+		sw_w32(state, priv->r->tbl_access_data_0(idx));
+
+		cmd ^= BIT(15); /* write table 5 */
+		priv->r->exec_tbl0_cmd(cmd);
+	}
+
+	return old_state;
 }
 
 /* Enables or disables the EEE/EEEP capability of a port */
@@ -1781,8 +1778,7 @@ const struct rtldsa_config rtldsa_839x_cfg = {
 	.enable_mcast_flood = rtl839x_enable_mcast_flood,
 	.enable_bcast_flood = rtl839x_enable_bcast_flood,
 	.set_static_move_action = rtl839x_set_static_move_action,
-	.stp_get = rtldsa_839x_stp_get,
-	.stp_set = rtl839x_stp_set,
+	.stp_access = rtldsa_839x_stp_access,
 	.mac_force_mode_ctrl = rtl839x_mac_force_mode_ctrl,
 	.mac_link_sts = RTL839X_MAC_LINK_STS,
 	.mac_port_ctrl = rtl839x_mac_port_ctrl,

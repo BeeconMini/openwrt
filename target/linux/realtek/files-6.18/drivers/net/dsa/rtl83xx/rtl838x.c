@@ -658,32 +658,28 @@ static void rtl838x_set_static_move_action(int port, bool forward)
 		    RTL838X_L2_PORT_STATIC_MV_ACT(port));
 }
 
-static int rtldsa_838x_stp_get(struct rtl838x_switch_priv *priv, u16 msti, int port, u32 port_state[])
+static int rtldsa_838x_stp_access(struct rtl838x_switch_priv *priv,
+				  u16 msti, int port, u32 *new_state)
 {
+	u32 cmd = GENMASK(15, 14) | (2 << 12) | (msti & 0xfff); /* read table 2 */
 	int idx = 1 - (port / 16);
 	int bit = 2 * (port % 16);
-	u32 cmd = 1 << 15 | /* Execute cmd */
-		  1 << 14 | /* Read */
-		  2 << 12 | /* Table type 0b10 */
-		  (msti & 0xfff);
+	u32 old_state, state;
 
 	priv->r->exec_tbl0_cmd(cmd);
-	for (int i = 0; i < 2; i++)
-		port_state[i] = sw_r32(priv->r->tbl_access_data_0(i));
+	state = sw_r32(priv->r->tbl_access_data_0(idx));
 
-	return (port_state[idx] >> bit) & 3;
-}
+	old_state = (state >> bit) & 3;
 
-static void rtl838x_stp_set(struct rtl838x_switch_priv *priv, u16 msti, u32 port_state[])
-{
-	u32 cmd = 1 << 15 | /* Execute cmd */
-		  0 << 14 | /* Write */
-		  2 << 12 | /* Table type 0b10 */
-		  (msti & 0xfff);
+	if (new_state) {
+		state = (state & ~(3 << bit)) | ((*new_state & 3) << bit);
+		sw_w32(state, priv->r->tbl_access_data_0(idx));
 
-	for (int i = 0; i < 2; i++)
-		sw_w32(port_state[i], priv->r->tbl_access_data_0(i));
-	priv->r->exec_tbl0_cmd(cmd);
+		cmd ^= BIT(14); /* write table 2 */
+		priv->r->exec_tbl0_cmd(cmd);
+	}
+
+	return old_state;
 }
 
 static void rtl838x_traffic_set(int source, u64 dest_matrix)
@@ -1865,8 +1861,7 @@ const struct rtldsa_config rtldsa_838x_cfg = {
 	.enable_mcast_flood = rtl838x_enable_mcast_flood,
 	.enable_bcast_flood = rtl838x_enable_bcast_flood,
 	.set_static_move_action = rtl838x_set_static_move_action,
-	.stp_get = rtldsa_838x_stp_get,
-	.stp_set = rtl838x_stp_set,
+	.stp_access = rtldsa_838x_stp_access,
 	.mac_port_ctrl = rtl838x_mac_port_ctrl,
 	.l2_port_new_salrn = rtl838x_l2_port_new_salrn,
 	.l2_port_new_sa_fwd = rtl838x_l2_port_new_sa_fwd,
