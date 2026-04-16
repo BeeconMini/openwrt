@@ -5,10 +5,10 @@ PKG_NAME:=ipq-wifi
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL=$(PROJECT_GIT)/project/firmware/qca-wireless.git
+PKG_SOURCE_URL=https://github.com/rekados/firmware_qca-wireless.git
 PKG_SOURCE_DATE:=2026-03-07
-PKG_SOURCE_VERSION:=beaf4667b9be6413c6d30994ba38475d77a5ae06
-PKG_MIRROR_HASH:=b3b3732aeca7ea587b259953909674bd6cff9ce659b94f140fa3186854c4b521
+PKG_SOURCE_VERSION:=4e31e1fb1eff26aa03bc486f63ce3c6d04b91960
+# PKG_MIRROR_HASH:=b3b3732aeca7ea587b259953909674bd6cff9ce659b94f140fa3186854c4b521
 PKG_FLAGS:=nonshared
 
 include $(INCLUDE_DIR)/package.mk
@@ -56,6 +56,7 @@ ALLWIFIBOARDS:= \
 	linksys_mr6350 \
 	linksys_mr7350 \
 	linksys_mr7500 \
+	linksys_mr9000 \
 	linksys_mx2000 \
 	linksys_mx4200 \
 	linksys_mx5300 \
@@ -250,6 +251,7 @@ $(eval $(call generate-ipq-wifi-package,linksys_mr5500,Linksys MR5500))
 $(eval $(call generate-ipq-wifi-package,linksys_mr6350,Linksys MR6350))
 $(eval $(call generate-ipq-wifi-package,linksys_mr7350,Linksys MR7350))
 $(eval $(call generate-ipq-wifi-package,linksys_mr7500,Linksys MR7500))
+$(eval $(call generate-ipq-wifi-package,linksys_mr9000,Linksys MR9000))
 $(eval $(call generate-ipq-wifi-package,linksys_mx2000,Linksys MX2000))
 $(eval $(call generate-ipq-wifi-package,linksys_mx4200,Linksys MX4200))
 $(eval $(call generate-ipq-wifi-package,linksys_mx5300,Linksys MX5300))
