@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Daniel Bozeman <daniel@orb.net>
+Date: Thu, 27 Mar 2026 00:00:00 +0000
+Subject: [PATCH] pmdomain: rockchip: Fix probe ordering and idle-only domain
+ handling
+
+Two issues are addressed:
+
+1. When iterating over power domain child nodes during probe, a single
+domain returning -EPROBE_DEFER (e.g. due to clock dependencies not yet
+being available) causes the entire power domain controller to fail and
+tear down all successfully registered domains. Skip domains that return
+-EPROBE_DEFER and continue registering the remaining domains. Skipped
+domains will have NULL entries in the provider, causing their consumers
+to defer.
+
+2. Domains with pwr_mask == 0 are idle-only and cannot actually be
+powered on or off. However rockchip_pd_power() still attempts QoS save
+and idle requests on these domains, accessing QoS registers that may be
+inaccessible. Return early from rockchip_pd_power() for idle-only
+domains, matching the existing early return in
+rockchip_do_pmu_set_power_domain().
+
+On RK3528, issue 1 causes PD_GPU's clock lookup failure to prevent
+registration of the idle-only domains (PD_RKVENC, PD_VO, PD_VPU), and
+issue 2 causes the generic power domain framework to crash when
+attempting to power off these idle-only domains via QoS register access.
+Together these issues lead to synchronous external aborts when devices
+on GPIO4 (in PD_RKVENC) are probed.
+
+Signed-off-by: Daniel Bozeman <daniel@orb.net>
+---
+ drivers/pmdomain/rockchip/pm-domains.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+--- a/drivers/pmdomain/rockchip/pm-domains.c
++++ b/drivers/pmdomain/rockchip/pm-domains.c
+@@ -590,6 +590,10 @@ static int rockchip_pd_power(struct rock
+ 	mutex_lock(&pmu->mutex);
+ 
+ 	if (rockchip_pmu_domain_is_on(pd) != power_on) {
++		if (pd->info->pwr_mask == 0) {
++			mutex_unlock(&pmu->mutex);
++			return 0;
++		}
+ 		ret = clk_bulk_enable(pd->num_clks, pd->clks);
+ 		if (ret < 0) {
+ 			dev_err(pmu->dev, "failed to enable clocks\n");
+@@ -971,6 +975,11 @@ static int rockchip_pm_domain_probe(stru
+ 	for_each_available_child_of_node_scoped(np, node) {
+ 		error = rockchip_pm_add_one_domain(pmu, node);
+ 		if (error) {
++			if (error == -EPROBE_DEFER) {
++				dev_dbg(dev, "skipped node %pOFn, dependencies not yet available\n",
++					node);
++				continue;
++			}
+ 			dev_err(dev, "failed to handle node %pOFn: %d\n",
+ 				node, error);
+ 			goto err_out;
