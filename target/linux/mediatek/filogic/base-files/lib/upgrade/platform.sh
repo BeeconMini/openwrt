@@ -181,6 +181,12 @@ platform_do_upgrade() {
 		CI_ROOT_UBIPART=ubi
 		nand_do_upgrade "$1"
 		;;
+	beeconmini,seed-ac1)
+		CI_KERNPART="kernel"
+		CI_ROOTPART="rootfs"
+		CI_DATAPART="rootfs_data"
+		emmc_do_upgrade "$1"
+		;;
 	*)
 		nand_do_upgrade "$1"
 		;;
@@ -231,6 +237,7 @@ platform_copy_config() {
 	acer,predator-w6d|\
 	acer,vero-w6m|\
 	arcadyan,mozart|\
+	beeconmini,seed-ac1|\
 	glinet,gl-mt2500|\
 	glinet,gl-mt6000|\
 	glinet,gl-x3000|\
