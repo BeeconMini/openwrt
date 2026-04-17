@@ -181,6 +181,7 @@ platform_do_upgrade() {
 		CI_ROOT_UBIPART=ubi
 		nand_do_upgrade "$1"
 		;;
+	beeconmini,seed-ac3|\
 	beeconmini,seed-ac2|\
 	beeconmini,seed-ac1)
 		CI_KERNPART="kernel"
@@ -240,6 +241,7 @@ platform_copy_config() {
 	arcadyan,mozart|\
 	beeconmini,seed-ac1|\
 	beeconmini,seed-ac2|\
+	beeconmini,seed-ac3|\
 	glinet,gl-mt2500|\
 	glinet,gl-mt6000|\
 	glinet,gl-x3000|\
