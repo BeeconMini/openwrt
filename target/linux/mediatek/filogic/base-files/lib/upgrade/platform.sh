@@ -195,6 +195,7 @@ platform_do_upgrade() {
 		CI_UBIPART="ubi"
 		nand_do_upgrade "$1"
 		;;
+	beeconmini,seed-ac5s-nor|\
 	cudy,re3000-v1|\
 	cudy,wr3000-v1|\
 	kebidumei,ax3000-u22|\
@@ -291,6 +292,7 @@ platform_do_upgrade() {
 		CI_ROOT_UBIPART=ubi
 		nand_do_upgrade "$1"
 		;;
+	beeconmini,seed-ac5s|\
 	beeconmini,seed-ac5|\
 	beeconmini,seed-ac3|\
 	beeconmini,seed-ac2|\
@@ -407,6 +409,7 @@ platform_copy_config() {
 	beeconmini,seed-ac2|\
 	beeconmini,seed-ac3|\
 	beeconmini,seed-ac5|\
+	beeconmini,seed-ac5s|\
 	glinet,gl-mt2500|\
 	glinet,gl-mt2500-airoha|\
 	glinet,gl-mt6000|\
